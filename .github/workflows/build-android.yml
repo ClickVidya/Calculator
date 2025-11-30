@@ -13,14 +13,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2 — Build APK using Buildozer
+      # Step 2 — Install dependencies and prepare Android SDK
+      - name: Setup Buildozer dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip python3-setuptools python3-venv git zip unzip openjdk-17-jdk
+          pip install --upgrade buildozer cython
+
+      # Step 3 — Set ANDROID_HOME environment
+      - name: Set ANDROID_HOME
+        run: echo "ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
+
+      # Step 4 — Accept Android SDK licenses
+      - name: Accept Android SDK licenses
+        run: yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+      # Step 5 — Build APK using Buildozer
       - name: Build APK
         uses: digreatbrian/buildozer-action@v2
         with:
           python-version: 3.11
           buildozer-cmd: buildozer -v android debug
 
-      # Step 3 — Upload the unsigned debug APK as artifact
+      # Step 6 — Upload the unsigned debug APK as artifact
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
