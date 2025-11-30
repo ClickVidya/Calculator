@@ -13,29 +13,38 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2 — Install dependencies and prepare Android SDK
-      - name: Setup Buildozer dependencies
+      # Step 2 — Install system dependencies and Python packages
+      - name: Setup environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pip python3-setuptools python3-venv git zip unzip openjdk-17-jdk
+          sudo apt-get install -y python3-pip python3-setuptools python3-venv git zip unzip openjdk-17-jdk wget
           pip install --upgrade buildozer cython
 
-      # Step 3 — Set ANDROID_HOME environment
+      # Step 3 — Set ANDROID_HOME environment variable
       - name: Set ANDROID_HOME
         run: echo "ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
 
-      # Step 4 — Accept Android SDK licenses
-      - name: Accept Android SDK licenses
-        run: yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+      # Step 4 — Install Android SDK 33, Build Tools 33.0.0, and platform tools
+      - name: Install Android SDK 33
+        run: |
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk/cmdline-tools
+          cd $HOME/.buildozer/android/platform/android-sdk/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+          unzip commandlinetools-linux-9477386_latest.zip -d latest
+          yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0"
 
-      # Step 5 — Build APK using Buildozer
+      # Step 5 — Accept all SDK licenses automatically
+      - name: Accept Android SDK licenses
+        run: yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+
+      # Step 6 — Build APK using Buildozer
       - name: Build APK
         uses: digreatbrian/buildozer-action@v2
         with:
           python-version: 3.11
           buildozer-cmd: buildozer -v android debug
 
-      # Step 6 — Upload the unsigned debug APK as artifact
+      # Step 7 — Upload the unsigned debug APK as artifact
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
